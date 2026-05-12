@@ -5,6 +5,8 @@ import { useState } from "react";
 
 type Status = "idle" | "submitting" | "ok" | "err";
 
+const CONTACT_TIMEOUT_MS = 12_000;
+
 export function Contact() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string>("");
@@ -32,9 +34,13 @@ export function Contact() {
       return;
     }
 
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), CONTACT_TIMEOUT_MS);
+
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -46,7 +52,13 @@ export function Contact() {
       (e.target as HTMLFormElement).reset();
     } catch (err: any) {
       setStatus("err");
-      setError(err?.message || "Something went wrong.");
+      setError(
+        err?.name === "AbortError"
+          ? "The request took too long. Please try again."
+          : err?.message || "Something went wrong.",
+      );
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
 

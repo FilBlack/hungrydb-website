@@ -4,6 +4,10 @@ import path from "node:path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 10;
+
+const RESEND_TIMEOUT_MS = 5_000;
+const isVercel = process.env.VERCEL === "1";
 
 type Payload = {
   name: string;
@@ -28,11 +32,14 @@ function validate(body: any): { ok: true; data: Payload } | { ok: false; error: 
   return { ok: true, data: { name, organization, email, note } };
 }
 
-async function persist(entry: Payload & { receivedAt: string }) {
+async function persist(entry: Payload & { receivedAt: string }): Promise<boolean> {
+  if (isVercel) return false;
+
   const dataDir = path.join(process.cwd(), "data");
   await fs.mkdir(dataDir, { recursive: true });
   const file = path.join(dataDir, "contacts.jsonl");
   await fs.appendFile(file, JSON.stringify(entry) + "\n", "utf8");
+  return true;
 }
 
 async function sendViaResend(entry: Payload & { receivedAt: string }): Promise<boolean> {
@@ -54,6 +61,7 @@ async function sendViaResend(entry: Payload & { receivedAt: string }): Promise<b
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
+    signal: AbortSignal.timeout(RESEND_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
@@ -65,7 +73,13 @@ async function sendViaResend(entry: Payload & { receivedAt: string }): Promise<b
       subject,
       text,
     }),
+  }).catch((err: unknown) => {
+    if (err instanceof DOMException && (err.name === "AbortError" || err.name === "TimeoutError")) {
+      throw new Error(`Resend timed out after ${RESEND_TIMEOUT_MS / 1000}s`);
+    }
+    throw err;
   });
+
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(`Resend failed: ${res.status} ${detail}`);
@@ -85,18 +99,25 @@ export async function POST(req: Request) {
 
   const entry = { ...v.data, receivedAt: new Date().toISOString() };
 
-  try {
-    await persist(entry);
-  } catch (err) {
-    console.error("[contact] persist failed:", err);
-    return NextResponse.json({ error: "Failed to record submission." }, { status: 500 });
-  }
-
   let emailed = false;
   try {
     emailed = await sendViaResend(entry);
   } catch (err) {
     console.error("[contact] email failed:", err);
+  }
+
+  let persisted = false;
+  try {
+    persisted = await persist(entry);
+  } catch (err) {
+    console.error("[contact] persist failed:", err);
+  }
+
+  if (!emailed && !persisted) {
+    return NextResponse.json(
+      { error: "Failed to deliver submission. Please try again shortly." },
+      { status: 502 },
+    );
   }
 
   return NextResponse.json({ ok: true, emailed });
