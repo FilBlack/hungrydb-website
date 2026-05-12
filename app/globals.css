@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  --bg: #FFFFFF;
+  --bg-warm: #F4F6F8;
+  --ink: #0F1419;
+  --ink-mid: #4B5765;
+  --ink-mute: #8A95A1;
+  --line: #E4E8EC;
+  --line-soft: #EFF2F5;
+  --accent: #1F9F5A;
+  --accent-hov: #1A8C4F;
+  --accent-soft: #DFF4E6;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-feature-settings: "cv11", "ss01";
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-warm); }
+::-webkit-scrollbar-thumb { background: #CDD3D9; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #B6BDC4; }
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(15,20,25,0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15,20,25,0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  .mask-fade-edges {
+    -webkit-mask-image: radial-gradient(ellipse at center, black 50%, transparent 88%);
+    mask-image: radial-gradient(ellipse at center, black 50%, transparent 88%);
+  }
+
+  .font-mono { font-family: var(--font-mono); }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 10px;
+    background: var(--accent); color: #fff; font-weight: 500;
+    transition: background .15s ease;
+  }
+  .btn-primary:hover { background: var(--accent-hov); }
+
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 10px;
+    background: transparent; color: var(--ink); font-weight: 500;
+    border: 1px solid var(--line);
+    transition: border-color .15s ease, background .15s ease;
+  }
+  .btn-ghost:hover { border-color: var(--ink-mute); background: var(--bg-warm); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 100px;
+    background: #fff; border: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-mid);
+    font-family: var(--font-mono);
+  }
+
+  .pill-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(31,159,90,0.18);
+  }
+}
